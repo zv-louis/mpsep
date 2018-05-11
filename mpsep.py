@@ -34,13 +34,12 @@ input file path. if this is not fed, read text data from STDIN.
 # ----------------------------------------------------------------------
 # write payload to file
 def write_to_file(payload, dir_path, filename):
-
-    # attachment file. write to file.
+    # attached file. create file path.
     attached_file_path = os.path.join(dir_path, filename)
     fp = open(attached_file_path, 'wb')
     with fp:
         fp.write(payload)
-        # notify file has restored, using STDERR.
+        # notify user that the attached files has restored, using STDERR.
         sys.stderr.write("Decoded attachment file --> '{0}'\n".format(attached_file_path))
         sys.stderr.flush()
 
@@ -48,7 +47,6 @@ def write_to_file(payload, dir_path, filename):
 # ----------------------------------------------------------------------
 # write payload to stdout
 def write_to_stdout(payload, charset):
-
     raw_str = payload.decode(charset)
     sys.stdout.write(raw_str)
     sys.stdout.flush()
@@ -57,10 +55,6 @@ def write_to_stdout(payload, charset):
 # ----------------------------------------------------------------------
 # Parsing message
 def parse_message(msg, dest_dir_path):
-
-    # OS default charset
-    # default_encoding = sys.getdefaultencoding()
-
     # count for the parts that is not having the filename or name.
     nameless_part_cnt = 0
 
@@ -71,25 +65,26 @@ def parse_message(msg, dest_dir_path):
         if main_content_type == 'multipart':
             continue
 
-        # get filename.
+        # get filename and data.
         filename = part.get_filename()
         payload = part.get_payload(decode=True)
         if not filename:
             # nameless part.
             if nameless_part_cnt == 0:
                 # first nameless part.
-                # assume it as message-body.
+                # assume it as email message, print to STDOUT.
 
+                # get the charset of the part to decode correctly.
                 charset = part.get_content_charset()
                 if not charset:
                     # RFC1341(MIME)
-                    # treat it as 'ascii' by default charset.
+                    # if not exist, assume it default charset, 'ascii'.
                     charset = 'ascii'
 
                 # write to STDOUT.
                 write_to_stdout(payload, charset)
                 # insert newline to stderr.
-                # display main-body which does not end with a linebreak.
+                # To display main-body which does not end with a linebreak.
                 sys.stderr.write('\n')
 
             else:
@@ -103,7 +98,7 @@ def parse_message(msg, dest_dir_path):
             nameless_part_cnt += 1
 
         else:
-            # attachment file. write to file.
+            # attached file. write it to file.
             write_to_file(payload, dest_dir_path, filename)
 
 
@@ -144,8 +139,8 @@ def script_main():
         if e.errno != errno.EEXIST:
             raise
 
-    # Create 'Message' from file descriptor.
-    # Read it as binary data.
+    # Create a message object from file descriptor.
+    # Read file as binary data.
     if not args.file:
         msg = email.message_from_binary_file(sys.stdin.buffer)
     else:
